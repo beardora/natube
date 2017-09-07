@@ -18,11 +18,10 @@ import os
 from scipy.stats import norm
 import matplotlib.gridspec as gridspec
 from itertools import product
-from trainIteration import trainmain
+from trainiteration2 import trainmain
 #import sys; sys.argv=['']; del sys
 
 
-#%%
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 64)')
@@ -41,7 +40,7 @@ parser.add_argument('--filename', type=str, default="run", metavar='filename',
 parser.add_argument('--ratio', type=float, default=0.3, metavar='N',
                     help='percentage of Training sample (out of 300)')                    
 parser.add_argument('--noplot',action='store_true', default=False, help='no plot')                    
-parser.add_argument('--noise', default=0.5,type=float, metavar='N',
+parser.add_argument('--noise', default=0,type=float, metavar='N',
                     help='added noise level')                    
 parser.add_argument('--continueTrain', action='store_true', default=False, help='Continue Training')                    
 parser.add_argument('--nplot', default=5, type=int, metavar='N',
@@ -69,32 +68,37 @@ sigma = args.sigma
 nplot = 5
 
 islog = args.logfile != ""
-nchannel = [30,10,10,5]
+nchannel = [40,40,10]
+
 encodeconv = nn.Sequential(
-             nn.Conv2d(1,nchannel[0],kernel_size=[1,5],stride=[1,5]),
+             nn.Conv2d(1,nchannel[0],kernel_size=[10,10]),
              nn.ReLU(True),
-             nn.Conv2d(nchannel[0],nchannel[1], kernel_size = [1,5], stride = [1,5]),
+             nn.Conv2d(nchannel[0],nchannel[1], kernel_size = [5,5]),
              nn.ReLU(True),
-             nn.Conv2d(nchannel[1],nchannel[2],kernel_size=[4,1]),
             )
-lastlayer1 = nn.Conv2d(nchannel[2], nchannel[3], kernel_size=[1,48])
-lastlayer2 = nn.Conv2d(nchannel[2], nchannel[3], kernel_size=[1,48])
+
+lastlayer1 = nn.Conv2d(nchannel[1], nchannel[2], kernel_size=[1,1])
+lastlayer2 = nn.Conv2d(nchannel[1], nchannel[2], kernel_size=[1,1])
 
 decode = nn.Sequential(
-            nn.ConvTranspose2d(nchannel[3], nchannel[2], kernel_size = [1,48]),
+            nn.ConvTranspose2d(nchannel[2], nchannel[1], kernel_size = [1,1]),
             nn.ReLU(True),
-            nn.ConvTranspose2d(nchannel[2], nchannel[1], kernel_size = [4,1]),
+            nn.ConvTranspose2d(nchannel[1], nchannel[0], kernel_size = [5,5]),
             nn.ReLU(True),
-            nn.ConvTranspose2d(nchannel[1],nchannel[0],kernel_size=[1,5], stride=[1,5]),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(nchannel[0],1,kernel_size=[1,5], stride=[1,5]),
+            nn.ConvTranspose2d(nchannel[0],1,kernel_size=[10,10]),
+            nn.Sigmoid()
 )
 
 args.nchannel = nchannel
 
 
-model = VAE(encodeconv=encodeconv,lastlayer1=lastlayer1,lastlayer2=lastlayer2,decode=decode,iscuda=args.cuda,loss="MSE")
+model = VAE(encodeconv=encodeconv,lastlayer1=lastlayer1,lastlayer2=lastlayer2,decode=decode,iscuda=args.cuda,loss="BCE")
 
+npara = 0
+for i in model.parameters():
+    npara = npara + i.numel()
+    
+print(npara)
 
 
 n = 20
@@ -105,12 +109,14 @@ ismode = "Train"
 if args.continueTrain:
     ismode = "continue"
 
-loaddata = dataloader(loaddata="nano",format="torch",demean=True,scale=False)
-loaddata.trainData
-
 #%%
 
-print("# of samples are {}".format(len(train_loader.dataset)))
+loaddata = dataloader(loaddata="nano",format="torch",demean=True,scale=False,pickclass=[0])
+
+
+
+
+print("# of samples are {}".format(len(loaddata.trainData)))
 
 
 
@@ -133,9 +139,8 @@ if ismode == "Train" or ismode == "continue":
         flog.write(str(args))
         flog.write("\n")
         
-    trainfunc = trainmain(model,optimizer,train_loader,iscuda=args.cuda,is1D=True,nplot=args.nplot,logfile=thisrunfilename+'train.log',iscontinue=args.continueTrain)
-    validatefunc = trainmain(model,optimizer,validate_loader,iscuda=args.cuda,is1D=True,nplot=args.nplot,logfile=thisrunfilename+'validate.log',iscontinue=args.continueTrain)
-    testfunc = trainmain(model,optimizer,test_loader,iscuda=args.cuda,is1D=True,nplot=args.nplot,logfile=thisrunfilename+'test.log',iscontinue=args.continueTrain)
+    trainfunc = trainmain(model,optimizer,loaddata.trainData,iscuda=args.cuda,is1D=False,nplot=2,logfile=thisrunfilename+'train.log',iscontinue=args.continueTrain)
+    testfunc = trainmain(model,optimizer,loaddata.testData,iscuda=args.cuda,is1D=False,nplot=5,logfile=thisrunfilename+'test.log',iscontinue=args.continueTrain)
 
     start_epoch = 0
     if args.continueTrain:
@@ -150,22 +155,8 @@ if ismode == "Train" or ismode == "continue":
         trainfunc.train(epoch,isTrain=True,noise_factor=args.noise,issave=issave,isplot=isplot,pltfile=thisrunfilename+"train.eps")
 
         if epoch % args.log_interval == 1:
-            validatefunc.train(epoch,isTrain=False,issave=issave,isplot=isplot,pltfile=thisrunfilename+"validate.eps")
             testfunc.train(epoch,isTrain=False,issave=issave,isplot=isplot,pltfile=thisrunfilename+"test.eps")
             
-            Tin = validatefunc.savedpara["loss"]
-            Tout = testfunc.savedpara["loss"]
-            thresh = np.percentile(Tin,99.5)
-            nvalidate = np.sum(Tin>thresh)
-            ntest = np.sum(Tout>thresh)
-            fpr, tpr, thresholds = metrics.roc_curve(np.hstack((Tin*0,Tout*0+1)), np.hstack((Tin,Tout)))
-            auc = metrics.auc(fpr, tpr)
-            
-            T = (np.mean(Tout) - np.mean(Tin))/(np.sqrt(np.std(Tin)**2+np.std(Tout)**2))
-            print("Model parameters {}, Incontrol false detection {}, OC Detection {} with AUC {} and T {}".format(npara,nvalidate,ntest,auc,T))
-            if islog:
-                tosave = [epoch,T,auc, trainfunc.log['loss'][-1],validatefunc.log['loss'][-1],testfunc.log['loss'][-1]]
-                flog.write(','.join(map(str, tosave)) +"\n")
         
         torch.save(model.state_dict(), thisrunfilename+'model_epoch_DCVAE_1d.pth')
 

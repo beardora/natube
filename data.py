@@ -73,10 +73,12 @@ class dataloader():
         elif self.loaddata == "nano":
             if len(alltransform)==0:
                 self.alltransform = transforms.Compose([
-                    transforms.RandomCrop(500),
+                    transforms.RandomCrop(100),
                     transforms.RandomHorizontalFlip(),                                                     
                     transforms.ToTensor(), 
+                    transforms.Lambda(lambda x: x.mean(dim=0)),
                     transforms.Lambda(lambda x: (x - x.min())/(x.max()-x.min())),
+                    transforms.Lambda(lambda x: x.unsqueeze(0).unsqueeze(1)),
                     ])        
             self.trainData, self.testData = self.loadnano()
 
@@ -102,7 +104,7 @@ class dataloader():
 
     def loadnano(self):
         self.preroot = os.path.join(self.rootlocation,'Nanotube','Data')
-        train_loader = datasets.ImageFolder(self.preroot)
+        train_loader = datasets.ImageFolder(self.preroot,transform=self.alltransform)
         train_loader = self.cleanClass(train_loader)
         train_loader,test_loader = dataloader.splitClassImageFolder(train_loader,self.pickclass)
         
