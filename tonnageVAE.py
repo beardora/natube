@@ -69,9 +69,9 @@ nplot = 5
 islog = args.logfile != ""
 nchannel = [30,10,10,2]
 encodeconv = nn.Sequential(
-             nn.Conv2d(1,nchannel[0],kernel_size=[1,5],stride=[1,5]),
+             nn.Conv2d(1,nchannel[0],kernel_size=[1,5],stride=(1,5)),
              nn.ReLU(True),
-             nn.Conv2d(nchannel[0],nchannel[1], kernel_size = [1,5], stride = [1,5]),
+             nn.Conv2d(nchannel[0],nchannel[1], kernel_size = [1,5], stride = (1,5)),
              nn.ReLU(True),
              nn.Conv2d(nchannel[1],nchannel[2],kernel_size=[4,1]),
             )
@@ -83,9 +83,9 @@ decode = nn.Sequential(
             nn.ReLU(True),
             nn.ConvTranspose2d(nchannel[2], nchannel[1], kernel_size = [4,1]),
             nn.ReLU(True),
-            nn.ConvTranspose2d(nchannel[1],nchannel[0],kernel_size=[1,5], stride=[1,5]),
+            nn.ConvTranspose2d(nchannel[1],nchannel[0],kernel_size=[1,5], stride=(1,5)),
             nn.ReLU(True),
-            nn.ConvTranspose2d(nchannel[0],1,kernel_size=[1,5], stride=[1,5]),
+            nn.ConvTranspose2d(nchannel[0],1,kernel_size=[1,5], stride=(1,5)),
 )
 args.nchannel = nchannel
 
@@ -101,7 +101,7 @@ optimizer = optim.Adam(model.parameters(), lr=1e-3)
 def train(epoch,train_loader,isTrain=True,iscuda=True,issave=False,isplot=True,pltaxes=[],pltfile=[]):
     istart = 0
     
-    ndf = model(Variable(train_loader.dataset[0][0].unsqueeze(0).unsqueeze(1)))[-1].view(-1).size()[0]
+    ndf = model(Variable(train_loader.dataset[0][0].unsqueeze(0)))[-1].view(-1).size()[0]
     
 
     if issave:

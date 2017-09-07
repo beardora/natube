@@ -22,7 +22,7 @@ from torchvision import datasets, transforms
 
 class dataloader():
     def __init__(self,loaddata = "MNIST", format="torch", demean = False, scale = True,\
-    rootlocation = os.path.join(os.path.expanduser('~'),'dropbox','Pytorch','data'),\
+    rootlocation = os.path.join(os.getcwd(),'Data'),\
     alltransform = [],pickclass = range(9)):
         self.loaddata = loaddata
         self.rootlocation = rootlocation
@@ -70,6 +70,16 @@ class dataloader():
         elif self.loaddata == "dose":
             self.trainData, self.testData = self.loadgendose(1000,100)    
 
+        elif self.loaddata == "nano":
+            if len(alltransform)==0:
+                self.alltransform = transforms.Compose([
+                    transforms.RandomCrop(500),
+                    transforms.RandomHorizontalFlip(),                                                     
+                    transforms.ToTensor(), 
+                    transforms.Lambda(lambda x: (x - x.min())/(x.max()-x.min())),
+                    ])        
+            self.trainData, self.testData = self.loadnano()
+
     def gendose(self,nrep):
         u = np.linspace(0,10,128)
         x = np.zeros((nrep,1,len(u)))
@@ -91,12 +101,11 @@ class dataloader():
         return trainDataWrapper, testDataWrapper
 
     def loadnano(self):
-        preroot = os.path.join(self.rootlocation,'Nanotube')
-        traindir = os.path.join(preroot,'Normal')
-        testdir = os.path.join(preroot,'Anomaly')
-        train_loader = datasets.ImageFolder(traindir,transform=self.alltransform)
+        self.preroot = os.path.join(self.rootlocation,'Nanotube','Data')
+        train_loader = datasets.ImageFolder(self.preroot)
         train_loader = self.cleanClass(train_loader)
-        test_loader = datasets.ImageFolder(testdir,transform=self.alltransform)
+        train_loader,test_loader = dataloader.splitClassImageFolder(train_loader,self.pickclass)
+        
         test_loader = self.cleanClass(test_loader)
         return train_loader,test_loader
 
@@ -128,12 +137,12 @@ class dataloader():
         testData[:,0,2,:] = testDataMat['AX3'][:,:-1]
         testData[:,0,3,:] = testDataMat['AX4'][:,:-1]
         
-        '''
+        
         if self.demean:
             self.mean = trainData.mean(axis=0)
             trainData -=  self.mean
             testData -= self.mean
-        '''
+       
         
         if self.scale:
             minvalue = min(trainData.min(),testData.min())

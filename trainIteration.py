@@ -95,10 +95,10 @@ class trainmain():
         for iplot in range(nplot*nplot):
             i,j = iplot%nplot,int(iplot/nplot)
 # if for tonnage dataset            
-#            self.axes[i][j].plot(range(npoint),data.data.numpy()[iplot][0][0],'k',range(npoint),recon_batch.data.numpy()[iplot][0][0],'r')
+            self.axes[i][j].plot(range(npoint),data.data.numpy()[iplot][0][0],'k',range(npoint),recon_batch.data.numpy()[iplot][0][0],'r')
 # if for other dose data
-            self.axes[i][j].plot(range(npoint),data.data.numpy()[iplot][0],'k',range(npoint),recon_batch.data.numpy()[iplot][0],'r')
-            self.axes[i][j].axis('off')
+#            self.axes[i][j].plot(range(npoint),data.data.numpy()[iplot][0],'k',range(npoint),recon_batch.data.numpy()[iplot][0],'r')
+#            self.axes[i][j].axis('off')
             
         self.f.savefig(pltfile)
         for iplot in range(nplot*nplot):

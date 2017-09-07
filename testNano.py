@@ -105,17 +105,10 @@ ismode = "Train"
 if args.continueTrain:
     ismode = "continue"
 
-loaddata = dataloader(loaddata="Tonnage",format="torch",demean=True,scale=False)
-trainData, validataData = dataloader.splitTensorDataset(loaddata.trainData,args.ratio)
+loaddata = dataloader(loaddata="nano",format="torch",demean=True,scale=False)
+loaddata.trainData
 
-trainmean = trainData.data_tensor.mean(0)
-trainData.data_tensor.sub_(trainmean.expand_as(trainData.data_tensor))
-validataData.data_tensor.sub_(trainmean.expand_as(validataData.data_tensor))
-loaddata.testData.data_tensor.sub_(trainmean.expand_as(loaddata.testData.data_tensor))
-
-train_loader = torch.utils.data.DataLoader(trainData,shuffle=True,batch_size=args.batch_size)
-validate_loader = torch.utils.data.DataLoader(validataData,shuffle=True,batch_size=args.batch_size)
-test_loader = torch.utils.data.DataLoader(loaddata.testData,shuffle=True,batch_size=args.batch_size)
+#%%
 
 print("# of samples are {}".format(len(train_loader.dataset)))
 
